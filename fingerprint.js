@@ -59,6 +59,27 @@ __API.typeFromName = function (x) {
   }
 };
 
+__API.namesOfType = function(names, type ) {
+  return names.filter(function (x) { return __API.typeFromName(x) === type; } );
+};
+
+__API.value = function(name) {
+  var type = __API.typeFromName(name);
+  if (['boolean', 'string', 'number'].indexOf(type) !== -1) {
+    try {
+      return JSON.stringify(eval(name));
+    } catch (e) {
+      return type;
+    }
+  } else {
+    return type;
+  }
+};
+
+__API.values = function(names) {
+  return names.map(function (name) { return name + ": " + __API.value(name); });
+}
+
 __API.apiTypes = function (apiNames) {
   return __API.uniqueMembers(apiNames.map(__API.typeFromName));
 };
