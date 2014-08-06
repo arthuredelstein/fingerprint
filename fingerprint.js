@@ -1,21 +1,64 @@
+var __API = __API || {};
 
-// Returns a tree of object properties, with the root
-// at object, assigned name.
-function getNameTree(name, object) {
+__API.uniqueMembers = function (arr) {
+  return arr.filter(function (value, index, self) { 
+    return self.indexOf(value) === index;
+  });
+};
+
+__API.getImmediateChildNames = function (object) {
+  return __API.uniqueMembers(
+    Object.getOwnPropertyNames(object)
+          .concat(Object.getOwnPropertyNames(Object.getPrototypeOf(object))))
+          .sort();
+};
+
+__API.standardFunctionProperties = __API.getImmediateChildNames(new Function());
+
+// Returns a list of fully-qualified object names,
+// descending from named object.
+__API.getChildNames = function getChildNames(object, name) {
+  var shortChildNames, longChildNames = [];
   try {
-    var names = Object.getOwnPropertyNames(object),
-        nodes = {};
+    shortChildNames = __API.getImmediateChildNames(object);
   } catch (e) {
-    return null;
+    return [];
   }
-  for (var i = 0; i < names.length; ++i) {
-    //console.log(names[i]);
-    if (['prototype', 'caller', 'callee', 'arguments'].indexOf(names[i]) == -1) {
-      child = object[names[i]];
+  for (var i = 0; i < shortChildNames.length; ++i) {
+    if (!(shortChildNames[i] === '__API' ||
+          (typeof(object) === 'function' && 
+           __API.standardFunctionProperties.indexOf(shortChildNames[i]) !== -1) ||
+          (typeof(object) === 'object' &&
+           shortChildNames[i] === 'prototype')
+       )) {
+      var failed = false, child = null;
+      longChildName = ((name !== null) ? name + "."  : "") + shortChildNames[i];
+      try {
+        child = eval(longChildName);
+      } catch (e) {
+        failed = true;
+      }
       if (child !== object) {
-        nodes[names[i]] = getNameTree(names[i], child);
+        longChildNames.push(longChildName);
+        if (!failed) {
+          longChildNames = longChildNames.concat(getChildNames(child, longChildName).slice());
+        }
       }
     }
   }
-  return nodes;
+  return longChildNames;
+};
+
+__API.getAllNames = function () { return __API.getChildNames(window, null); };
+
+__API.typeFromName = function (x) {
+  try {
+    return typeof(eval(x));
+  } catch (e) {
+    return x;
+  }
+};
+
+__API.apiTypes = function (apiNames) {
+  return __API.uniqueMembers(apiNames.map(__API.typeFromName));
 };
